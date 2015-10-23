@@ -1,4 +1,5 @@
 require("love_reactor/container")
+require("love_reactor/strict")
 
 components = {}
 component_containers = {}
@@ -56,7 +57,6 @@ function class(schema, components, membership)
       end
     end
 
-    print(schema.init)
     output:init(...)
 
     return output
