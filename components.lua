@@ -58,15 +58,12 @@ drawable = component("drawable", "drawables",
 
 function draw_drawables(drawables)
   local drawables = simple_clone(drawables.values())
-  love.graphics.push()
-  love.graphics.translate(camera.x, camera.y)
   table.sort(drawables, function(v1, v2) return v1.depth > v2.depth end)
   for _, v in pairs(drawables) do
       if v.visible then
         v:draw()
       end
   end
-  love.graphics.pop()
 end
 
 -- Draw drawables on "draw" event
@@ -155,6 +152,23 @@ update_stream.map(function()
     collision_stream.send(collision_event)
   end)
 end)
+
+function collision_between(group_1, group_2)
+  local function check(event)
+    local a = event.a
+    local b = event.b
+    if group_1.contains(a) and group_2.contains(b) then
+      return event
+    elseif group_2.contains(a) and group_1.contains(b) then
+      return {
+        a = event.b,
+        b = event.a
+      }
+    end
+    return nil
+  end
+  return check
+end
 
 function dumb_collisions(ca, cb)
   local center_a = {x = ca.x + ca.width / 2, y = ca.y + ca.height / 2}

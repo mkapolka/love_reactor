@@ -60,6 +60,7 @@ function class(schema, components, membership)
       output.on_destroy.send("destroyed")
     end
 
+    output.init = output.init or function() end
     output:init(...)
 
     return output
