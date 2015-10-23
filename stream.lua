@@ -209,6 +209,13 @@ click_stream = make_stream()
 keypressed_stream = make_stream()
 keyreleased_stream = make_stream()
 
+keyheld_stream = make_stream()
+keypressed_stream.map(function(k)
+  update_stream.take_until(keyreleased_stream
+                            .filter(function(v) return v == k end))
+    .map(function(_) keyheld_stream.send(k) end)
+end)
+
 mouse_stream = update_stream.map(function(_)
   return {x = love.mouse.getX(), y = love.mouse.getY()}
 end)
