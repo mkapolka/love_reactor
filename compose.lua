@@ -40,6 +40,8 @@ function class(schema, components, membership)
     apply_schema(partial)(output)
     apply_schema(schema)(output)
 
+    output.on_destroy = make_stream()
+
     for _, component in pairs(components) do
       apply_component(output, component)
     end
@@ -55,6 +57,7 @@ function class(schema, components, membership)
       for _, container in pairs(membership) do
         container.remove(output)
       end
+      output.on_destroy.send("destroyed")
     end
 
     output:init(...)

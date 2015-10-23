@@ -8,6 +8,10 @@ require("love_reactor/utils")
 --  DRAWABLES
 -- ###########
 
+camera = {
+  x = 0, y = 0
+}
+
 function draw_drawable(drawable)
   love.graphics.setColor(drawable.color)
   if drawable.quad then
@@ -54,12 +58,15 @@ drawable = component("drawable", "drawables",
 
 function draw_drawables(drawables)
   local drawables = simple_clone(drawables.values())
+  love.graphics.push()
+  love.graphics.translate(camera.x, camera.y)
   table.sort(drawables, function(v1, v2) return v1.depth > v2.depth end)
   for _, v in pairs(drawables) do
       if v.visible then
         v:draw()
       end
   end
+  love.graphics.pop()
 end
 
 -- Draw drawables on "draw" event

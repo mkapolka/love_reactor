@@ -25,7 +25,7 @@ function make_stream()
     function output.receive(value)
       local send = f(value)
       if send == no_more then
-        output.detach()
+        output.finish()
       else
         output.send(send)
       end
@@ -72,8 +72,9 @@ function make_stream()
     self._clear_inputs()
   end
 
-  function self.detach()
+  function self.finish()
     self._clear_inputs()
+    self._clear_outputs()
   end
 
   function self.preSplice(stream)
@@ -84,18 +85,24 @@ function make_stream()
     self._clear_inputs()
   end
 
-  function self._clear_inputs(stream)
+  function self._clear_inputs()
     for _, input in pairs(self.inputs) do
       input._remove_listener(self)
     end
   end
 
-  function self._remove_listener(stream)
-    for i, listener_stream in pairs(self.listeners) do
-      if stream == listener_stream then
-        table.remove(self.listeners, i)
-      end
+  function self._clear_outputs()
+    for _, listener in pairs(self.listeners) do
+      listener._remove_input(self)
     end
+  end
+
+  function self._remove_listener(stream)
+    table.removeValue(self.listeners, stream)
+  end
+
+  function self._remove_input(which)
+    table.removeValue(self.inputs, which)
   end
 
   function self.explode()
@@ -112,7 +119,7 @@ function make_stream()
   function self.take_until(other)
     local output = self.map(function(v) return v end)
     other.map(function()
-      output.detach()
+      output.finish()
       return no_more
     end)
     return output
@@ -161,6 +168,14 @@ function make_stream()
 
     return buffer_stream
   end
+  
+  function self.print(prepend)
+    prepend = prepend or ""
+    return self.map(function(x)
+      print(prepend .. x)
+      return x
+    end)
+  end
 
   return self
 end
@@ -181,9 +196,9 @@ function combineLatest(stream_table, initial_values)
     output.send(output.latest_values)
   end
 
-  function output.detach()
+  function output.finish()
     for _, cxn in pairs(output.cxns) do
-      cxn.input._remove_listener(cxn)
+      cxn.finish()
     end
   end
 

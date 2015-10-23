@@ -43,3 +43,8 @@ function math.clamp(value, min, max)
   end
   return value
 end
+
+start_time = love.timer.getTime()
+function love.timer.getRuntime()
+  return love.timer.getTime() - start_time
+end
