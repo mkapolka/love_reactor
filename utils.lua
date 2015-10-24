@@ -48,3 +48,12 @@ start_time = love.timer.getTime()
 function love.timer.getRuntime()
   return love.timer.getTime() - start_time
 end
+
+-- delim here needs to be a single character
+function split(s, delim)
+  local output = {}
+  for match in string.gmatch(s, "[^" .. delim .. "]+") do
+    table.insert(output, match)
+  end
+  return output
+end

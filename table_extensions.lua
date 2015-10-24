@@ -72,7 +72,7 @@ function table.clone(table)
   return output
 end
 
-function table.pickRandom(t)
+function table.pick_random(t)
   local values = {}
   for _, v in pairs(t) do
     table.insert(values, v)
