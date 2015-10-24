@@ -9,7 +9,7 @@ function rxcontainer()
   self._aggregate_streams = {}
 
   function self.add(thing)
-    was_present = self.contents[thing]
+    local was_present = self.contents[thing]
     self.contents[thing] = true 
     if not was_present then
       self._attach_aggregates(thing)
@@ -19,7 +19,7 @@ function rxcontainer()
   end
 
   function self.remove(thing)
-    was_present = self.contents[thing]
+    local was_present = self.contents[thing]
     self.contents[thing] = nil
     if was_present then
       self._detach_aggregates(thing)
@@ -34,7 +34,7 @@ function rxcontainer()
 
   function self._cache_values()
     local output = {}
-    i = 1
+    local i = 1
     for k, _ in pairs(self.contents) do
       output[i] = k
       i = i + 1
@@ -75,7 +75,7 @@ end
 
 function union(rxc1, rxc2)
   local output = rxcontainer()
-  containers = {rxc1, rxc2}
+  local containers = {rxc1, rxc2}
   for _, container in pairs(containers) do
     container.added
       .map(function(t) output.add(t) end)
