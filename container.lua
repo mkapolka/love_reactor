@@ -73,9 +73,9 @@ function rxcontainer()
   return self
 end
 
-function union(rxc1, rxc2)
+function union(...)
   local output = rxcontainer()
-  local containers = {rxc1, rxc2}
+  local containers = {...}
   for _, container in pairs(containers) do
     container.added
       .map(function(t) output.add(t) end)
