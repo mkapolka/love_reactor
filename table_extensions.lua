@@ -126,3 +126,11 @@ end
 function table.empty(t)
   return #t > 0
 end
+
+function table.member_set(t)
+  local output = {}
+  for _, v in pairs(t) do
+    output[v] = true
+  end
+  return output
+end

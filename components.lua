@@ -15,6 +15,8 @@ camera = {
 function draw_drawable(drawable)
   love.graphics.setColor(drawable.color)
   if drawable.quad then
+    local spriteWidth = drawable.sprite:getWidth()
+    local spriteHeight = drawable.sprite:getHeight()
     love.graphics.draw(drawable.sprite,
                        drawable.quad,
                        drawable.x,
@@ -26,6 +28,8 @@ function draw_drawable(drawable)
                        drawable.oy
                       )
   else
+    local spriteWidth = drawable.sprite:getWidth()
+    local spriteHeight = drawable.sprite:getHeight()
     love.graphics.draw(drawable.sprite,
                        drawable.x,
                        drawable.y,
@@ -118,17 +122,30 @@ end)
 collidable = component("collidable", "collidables", apply_schema({
   x = 0,
   y = 0,
+  origin = {
+    x = 0, y = 0
+  },
   width = 0,
   height = 0,
+  get_bounds = function(self)
+    return {
+      x = self.x - self.origin.x,
+      y = self.y - self.origin.y,
+      width = self.width,
+      height = self.height
+    }
+  end
 }))
 
 collision_stream = make_stream()
 
 function check_collision(ca, cb, callback)
-  local center_a = {x = ca.x + ca.width / 2, y = ca.y + ca.height / 2}
-  local center_b = {x = cb.x + cb.width / 2, y = cb.y + cb.height / 2}
-  if math.abs(center_a.x - center_b.x) < (ca.width / 2 + cb.width / 2) and
-     math.abs(center_a.y - center_b.y) < (ca.height / 2 + cb.height / 2) then
+  local a_bounds = ca:get_bounds()
+  local b_bounds = cb:get_bounds()
+  local center_a = {x = a_bounds.x + a_bounds.width / 2, y = a_bounds.y + a_bounds.height / 2}
+  local center_b = {x = b_bounds.x + b_bounds.width / 2, y = b_bounds.y + b_bounds.height / 2}
+  if math.abs(center_a.x - center_b.x) < (a_bounds.width / 2 + b_bounds.width / 2) and
+     math.abs(center_a.y - center_b.y) < (a_bounds.height / 2 + b_bounds.height / 2) then
     callback(ca, cb)
   end
 end
@@ -171,8 +188,10 @@ function collision_between(group_1, group_2)
 end
 
 function dumb_collisions(ca, cb)
-  local center_a = {x = ca.x + ca.width / 2, y = ca.y + ca.height / 2}
-  local center_b = {x = cb.x + cb.width / 2, y = cb.y + cb.height / 2}
+  local ba = ca:get_bounds()
+  local bb = cb:get_bounds()
+  local center_a = {x = ba.x + ba.width / 2, y = ba.y + ba.height / 2}
+  local center_b = {x = bb.x + bb.width / 2, y = bb.y + bb.height / 2}
   local delta = {
     x = center_a.x - center_b.x,
     y = center_a.y - center_b.y
