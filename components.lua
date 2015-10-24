@@ -256,3 +256,51 @@ click_stream.map(function(event)
     event.target.click_stream.send(event)
   end, event.x, event.y, event.button, event.type)
 end)
+
+-- #############
+--  ANIMATABLES
+-- #############
+--
+-- animations = {
+--  frames = {1,2,3} -- indicies of self.frames
+--  speed = 0 -- seconds per frame
+-- }
+
+animatable = component(function(thing)
+  apply_schema({
+    frames = {}, -- list of quads
+    animations = {}, -- list of animations
+    _current_animation = nil,
+    _current_frame = 1,
+    _frame_timer = 0,
+    finished_animation = make_stream(),
+    play = function(self, name)
+      self._current_animation = self.animations[name]
+      self._frame_timer = self._current_animation.speed
+      self:set_frame(1)
+    end,
+    set_frame = function(self, frame)
+      self._current_frame = frame
+      self.quad = self.frames[self._current_animation.frames[self._current_frame]]
+    end
+  })(thing)
+  if thing.start_animation then
+    thing:play(thing.start_animation)
+  end
+end)
+
+update_stream.map(function()
+  for _, animatable in pairs(animatable.instances.values()) do
+    animatable._frame_timer = animatable._frame_timer - love.timer.getDelta()
+    if animatable._frame_timer < 0 then
+      local frame = animatable._current_frame % #(animatable._current_animation.frames)
+      if frame == 0 and animatable._current_animation.next then
+        animatable:play(animatable._current_animation.next)
+      else
+        local frame = frame + 1
+        animatable:set_frame(frame)
+        animatable._frame_timer = animatable._current_animation.speed
+      end
+    end
+  end
+end)
