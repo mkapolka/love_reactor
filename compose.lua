@@ -36,7 +36,9 @@ function class(schema, components, membership)
   table.insert(membership, self.instances)
   function self.new(partial, ...)
     local output = {}
-    apply_schema(partial)(output)
+    if partial then
+      apply_schema(partial)(output)
+    end
     apply_schema(schema)(output)
 
     output.on_destroy = make_stream()
