@@ -43,8 +43,7 @@ function draw_drawable(drawable)
   love.graphics.setColor(255, 255, 255, 255)
 end
 
-drawable = component("drawable", "drawables",
-  apply_schema({
+drawable = component(apply_schema({
     x = 0,
     y = 0,
     sprite = nil,
@@ -60,25 +59,23 @@ drawable = component("drawable", "drawables",
     draw = draw_drawable
   }))
 
-function draw_drawables(drawables)
-  local drawables = simple_clone(drawables.values())
-  table.sort(drawables, function(v1, v2) return v1.depth > v2.depth end)
-  for _, v in pairs(drawables) do
-      if v.visible then
-        v:draw()
-      end
-  end
-end
-
 -- Draw drawables on "draw" event
-draw_stream.mapValue(drawables)
-  .map(draw_drawables)
+draw_stream
+  .map(function()
+    local drawables = simple_clone(drawable.instances.values())
+    table.sort(drawables, function(v1, v2) return v1.depth > v2.depth end)
+    for _, v in pairs(drawables) do
+        if v.visible then
+          v:draw()
+        end
+    end
+  end)
 
 -- #########
 --  MOVABLES
 -- #########
 
-movable = component("movable", "movables", apply_schema({
+movable = component(apply_schema({
   x = 0,
   y = 0,
   vx = 0,
@@ -110,7 +107,7 @@ function update_movable(movable)
 end
 
 update_stream.map(function(x)
-  for _, movable in pairs(movables.values()) do
+  for _, movable in pairs(movable.instances.values()) do
     update_movable(movable)
   end
 end)
@@ -119,7 +116,7 @@ end)
 --  COLLIDABLES
 -- #############
 
-collidable = component("collidable", "collidables", apply_schema({
+collidable = component(apply_schema({
   x = 0,
   y = 0,
   origin = {
@@ -161,7 +158,7 @@ function check_collisions(collidables, callback)
 end
 
 update_stream.map(function()
-  check_collisions(collidables.values(), function(ca, cb)
+  check_collisions(collidable.instances.values(), function(ca, cb)
     local collision_event = {
       a = ca,
       b = cb
@@ -220,7 +217,7 @@ end
 --  CLICKABLES
 -- #############
 
-clickable = component("clickable", "clickables", function(thing)
+clickable = component(function(thing)
   apply_schema({
     x = 0,
     y = 0,
@@ -247,7 +244,7 @@ function check_clickables(clickables, callback, mx, my, mb, type)
 end
 
 click_stream.map(function(event)
-  check_clickables(clickables.values(), function(clickable, mx, my, mb)
+  check_clickables(clickable.instances.values(), function(clickable, mx, my, mb)
     local event = {
       target = clickable,
       mx = mx,

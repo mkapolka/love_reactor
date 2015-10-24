@@ -14,18 +14,17 @@ end
 
 function apply_component(thing, component)
   component.callback(thing)  
-  component_containers[component.name].add(thing)
+  component.instances.add(thing)
 end
 
-function component(name, plural, callback)
-  local self = {}
-  self.name = name
-  self.plural = plural
-  self.callback = callback
+function remove_component(thing, component)
+  component.instances.remove(thing)
+end
 
-  components[name] = self
-  component_containers[name] = rxcontainer()
-  _G[plural] = component_containers[name]
+function component(callback)
+  local self = {}
+  self.callback = callback
+  self.instances = rxcontainer()
 
   return self
 end
@@ -51,8 +50,7 @@ function class(schema, components, membership)
 
     function output.destroy()
       for _, component in pairs(components) do
-        local component_container = component_containers[component.name]
-        component_container.remove(output)
+        remove_component(output, component)
       end
       for _, container in pairs(membership) do
         container.remove(output)
