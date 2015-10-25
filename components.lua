@@ -22,10 +22,10 @@ function draw_drawable(drawable)
                        drawable.x,
                        drawable.y,
                        drawable.rotation,
-                       drawable.sx,
-                       drawable.sy,
-                       drawable.ox,
-                       drawable.oy
+                       drawable.scale.x,
+                       drawable.scale.y,
+                       drawable.offset.x,
+                       drawable.offset.y
                       )
   else
     local spriteWidth = drawable.sprite:getWidth()
@@ -34,30 +34,44 @@ function draw_drawable(drawable)
                        drawable.x,
                        drawable.y,
                        drawable.rotation,
-                       drawable.sx,
-                       drawable.sy,
-                       drawable.ox,
-                       drawable.oy
+                       drawable.scale.x,
+                       drawable.scale.y,
+                       drawable.offset.x,
+                       drawable.offset.y
                       )
   end
   love.graphics.setColor(255, 255, 255, 255)
 end
 
-drawable = component(apply_schema({
-    x = 0,
-    y = 0,
+drawable = component(function(self)
+  apply_schema({
+    x = 0, y = 0,
     sprite = nil,
     color = {255, 255, 255, 255},
     quad = nil,
     rotation = 0,
-    sx = 1,
-    sy = 1,
-    ox = 0,
-    oy = 0,
+    scale = {x = 1, y = 1},
     depth = 0,
     visible = true,
     draw = draw_drawable
-  }))
+  })(self)
+  if self.sprite then
+    if not self.offset then
+      self.offset = {
+        x = self.sprite:getWidth() / 2,
+        y = self.sprite:getHeight() / 2
+      }
+    end
+
+    if not self.width then
+      self.width = self.sprite:getWidth()
+    end
+
+    if not self.height then
+      self.height = self.sprite:getHeight()
+    end
+  end
+end)
 
 -- Draw drawables on "draw" event
 draw_stream
@@ -76,33 +90,31 @@ draw_stream
 -- #########
 
 movable = component(apply_schema({
-  x = 0,
-  y = 0,
-  vx = 0,
-  vy = 0,
-  ax = 0,
-  ay = 0,
-  drag_x = 0,
-  drag_y = 0,
+  x = 0, y = 0,
+  velocity = {x = 0, y = 0},
+  acceleration = {x = 0, y = 0},
+  drag = {x = 0, y = 0}
 }))
 
 function update_movable(movable)
-  movable.x = movable.x + movable.vx * love.timer.getDelta()
-  movable.y = movable.y + movable.vy * love.timer.getDelta()
-  movable.vx = movable.vx + movable.ax * love.timer.getDelta()
-  movable.vy = movable.vy + movable.ay * love.timer.getDelta()
-  local dvx = movable.drag_x * love.timer.getDelta()
-  if math.abs(movable.vx) < dvx then
-    movable.vx = 0
+  local position = {x = movable.x, y = movable.y}
+  local new_position = vector.add(position, vector.mult(movable.velocity, love.timer.getDelta()))
+  movable.x = new_position.x
+  movable.y = new_position.y
+
+  movable.velocity = vector.add(movable.velocity, vector.mult(movable.acceleration, love.timer.getDelta()))
+  local dvx = movable.drag.x * love.timer.getDelta()
+  if math.abs(movable.velocity.x) < dvx then
+    movable.velocity.x = 0
   else
-    movable.vx = movable.vx + dvx * (movable.vx > 0 and -1 or 1)
+    movable.velocity.x = movable.velocity.x + dvx * (movable.velocity.x > 0 and -1 or 1)
   end
 
-  local dvy = movable.drag_y * love.timer.getDelta()
-  if math.abs(movable.vy) < dvy then
-    movable.vy = 0
+  local dvy = movable.drag.y * love.timer.getDelta()
+  if math.abs(movable.velocity.y) < dvy then
+    movable.velocity.y = 0
   else
-    movable.vy = movable.vy + dvy * (movable.vy > 0 and -1 or 1)
+    movable.velocity.y = movable.velocity.y + dvy * (movable.velocity.y > 0 and -1 or 1)
   end
 end
 
@@ -116,23 +128,32 @@ end)
 --  COLLIDABLES
 -- #############
 
-collidable = component(apply_schema({
-  x = 0,
-  y = 0,
-  origin = {
-    x = 0, y = 0
-  },
-  width = 0,
-  height = 0,
-  get_bounds = function(self)
-    return {
-      x = self.x - self.origin.x,
-      y = self.y - self.origin.y,
-      width = self.width,
-      height = self.height
+collidable = component(function(self)
+  apply_schema({
+    x = 0,
+    y = 0,
+    width = 0,
+    height = 0,
+    get_bounds = function(self)
+      return {
+        x = self.x - self.origin.x,
+        y = self.y - self.origin.y,
+        width = self.width,
+        height = self.height
+      }
+    end
+  })(self)
+  if self.sprite and not self.origin then
+    self.origin = {
+      x = self.sprite:getWidth() / 2,
+      y = self.sprite:getHeight() / 2
     }
   end
-}))
+
+  if not self.origin then
+    self.origin = {x = 0, y = 0}
+  end
+end)
 
 collision_stream = make_stream()
 

@@ -31,6 +31,7 @@ end
 
 function class(schema, components, membership)
   local self = {}
+  local components = components or {}
   local membership = membership or {}
   self.instances = rxcontainer()
   table.insert(membership, self.instances)
