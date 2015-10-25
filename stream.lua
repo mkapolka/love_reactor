@@ -172,7 +172,7 @@ function make_stream()
   function self.print(prepend)
     prepend = prepend or ""
     return self.map(function(x)
-      print(prepend .. x)
+      print(prepend .. tostring(x))
       return x
     end)
   end
