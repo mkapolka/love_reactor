@@ -61,7 +61,7 @@ function make_stream()
 
   function self.detach_from(stream)
     table.removeValue(stream.inputs, self)
-    table.removeValue(self.listeners, self)
+    table.removeValue(self.listeners, stream)
   end
 
   function self.replace(stream)
