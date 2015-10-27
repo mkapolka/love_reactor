@@ -14,15 +14,34 @@ end
 
 function apply_component(thing, component)
   component.callback(thing)  
+  thing.components[components] = true
   component.instances.add(thing)
 end
 
 function remove_component(thing, component)
   component.instances.remove(thing)
+  thing.components[component] = nil
 end
 
-function component(callback)
+function has_component(thing, component)
+  return thing.components[component]
+end
+
+function component(callback, requirements)
   local self = {}
+
+  if requirements then
+    local pre_callback = callback
+    callback = function(thing)
+      for _, requirement in pairs(requirements) do
+        if not has_component(thing, requirement) then
+          apply_component(thing, requirement)
+        end
+      end
+      pre_callback(thing)
+    end
+  end
+
   self.callback = callback
   self.instances = rxcontainer()
 
@@ -36,7 +55,10 @@ function class(schema, components, membership)
   self.instances = rxcontainer()
   table.insert(membership, self.instances)
   function self.new(partial, ...)
-    local output = {}
+    local output = {
+      components = {},
+      class = self
+    }
     if partial then
       apply_schema(partial)(output)
     end
