@@ -22,7 +22,6 @@ function rxcontainer()
     local was_present = self.contents[thing]
     self.contents[thing] = nil
     if was_present then
-      self._detach_aggregates(thing)
       self.removed.send(thing)
     end
     self._cache_values()
@@ -52,21 +51,22 @@ function rxcontainer()
       stream = make_stream()
       self._aggregate_streams[field_name] = stream
       for v, _ in pairs(self.contents) do
-        v[field_name].attach(stream)
-      end
+        member[field_name].take_until(self.removed.filter(function(e) return e == member end))
+          .map(function(v)
+            return {member = member, value = v}
+          end).attach(stream)
+        end
     end
     return stream
   end
 
   function self._attach_aggregates(member)
     for field_name, stream in pairs(self._aggregate_streams) do
-      member[field_name].attach(stream)
-    end
-  end
-
-  function self._detach_aggregates(member)
-    for field_name, stream in pairs(self._aggregate_streams) do
-      member[field_name].detach_from(stream)
+      --member[field_name].attach(stream)
+      member[field_name].take_until(self.removed.filter(function(e) return e == member end))
+        .map(function(v)
+            return {member = member, value = v}
+        end).attach(stream)
     end
   end
 
