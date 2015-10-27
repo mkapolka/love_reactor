@@ -251,8 +251,14 @@ end)
 clickable_stream = make_stream()
 
 function check_clickable(clickable, callback, mx, my, mb, type)
-  if clickable.x < mx and mx < clickable.x + clickable.width then
-    if clickable.y < my and my < clickable.y + clickable.height then
+  local rect = {
+    x = clickable.x - clickable.origin.x,
+    y = clickable.y - clickable.origin.y,
+    width = clickable.width,
+    height = clickable.height
+  }
+  if rect.x < mx and mx < rect.x + rect.width then
+    if rect.y < my and my < rect.y + rect.height then
       callback(clickable, mx, my, mb, type)
     end
   end
