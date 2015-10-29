@@ -19,25 +19,25 @@ function draw_drawable(drawable)
     local spriteHeight = drawable.sprite:getHeight()
     love.graphics.draw(drawable.sprite,
                        drawable.quad,
-                       drawable.x,
-                       drawable.y,
+                       math.floor(drawable.x),
+                       math.floor(drawable.y),
                        drawable.rotation,
                        drawable.scale.x,
                        drawable.scale.y,
-                       drawable.offset.x,
-                       drawable.offset.y
+                       math.floor(drawable.offset.x),
+                       math.floor(drawable.offset.y)
                       )
   else
     local spriteWidth = drawable.sprite:getWidth()
     local spriteHeight = drawable.sprite:getHeight()
     love.graphics.draw(drawable.sprite,
-                       drawable.x,
-                       drawable.y,
+                       math.floor(drawable.x),
+                       math.floor(drawable.y),
                        drawable.rotation,
                        drawable.scale.x,
                        drawable.scale.y,
-                       drawable.offset.x,
-                       drawable.offset.y
+                       math.floor(drawable.offset.x),
+                       math.floor(drawable.offset.y)
                       )
   end
   love.graphics.setColor(255, 255, 255, 255)
@@ -58,6 +58,13 @@ drawable = component(function(self)
   if self.sprite then
     if not self.offset then
       self.offset = {
+        x = self.sprite:getWidth() / 2,
+        y = self.sprite:getHeight() / 2
+      }
+    end
+
+    if not self.origin then
+      self.origin = {
         x = self.sprite:getWidth() / 2,
         y = self.sprite:getHeight() / 2
       }
@@ -134,6 +141,7 @@ collidable = component(function(self)
     y = 0,
     width = 0,
     height = 0,
+    collision_stream = make_stream(),
     get_bounds = function(self)
       return {
         x = self.x - self.origin.x,
@@ -185,6 +193,8 @@ update_stream.map(function()
       b = cb
     }
     collision_stream.send(collision_event)
+    ca.collision_stream.send(collision_event)
+    cb.collision_stream.send(collision_event)
   end)
 end)
 
@@ -244,6 +254,7 @@ clickable = component(function(thing)
     y = 0,
     width = 0,
     height = 0,
+    origin = {x=0, y=0}
   })(thing)
   thing.click_stream = make_stream()
 end)

@@ -14,7 +14,7 @@ end
 
 function apply_component(thing, component)
   component.callback(thing)  
-  thing.components[components] = true
+  thing.components[component] = true
   component.instances.add(thing)
 end
 
