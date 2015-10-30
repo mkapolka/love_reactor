@@ -94,7 +94,7 @@ function table.min(t, f)
     f = function(a) return a end
   end
 
-  function min_cmp(a, b)
+  local function min_cmp(a, b)
     if a == nil then return b end
     if f(a) < f(b) then
       return a
@@ -111,7 +111,7 @@ function table.max(t, f)
     f = function(a) return a end
   end
 
-  function max_cmp(a, b)
+  local function max_cmp(a, b)
     if a == nil then return b end
     if f(a) > f(b) then
       return a
