@@ -30,6 +30,10 @@ function rxcontainer()
   function self.contains(thing)
     return self.contents[thing]
   end
+  
+  function self.empty()
+    return #self.values() == 0
+  end
 
   function self._cache_values()
     local output = {}
@@ -58,6 +62,18 @@ function rxcontainer()
         end
     end
     return stream
+  end
+
+  function self.call(fname, ...)
+    for _, member in pairs(self.values()) do
+      member[fname](...)
+    end
+  end
+
+  function self.set(key, value)
+    for _, member in pairs(self.values()) do
+      member[key] = value
+    end
   end
 
   function self._attach_aggregates(member)
