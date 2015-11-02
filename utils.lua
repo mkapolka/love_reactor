@@ -57,3 +57,8 @@ function split(s, delim)
   end
   return output
 end
+
+function getTextHeight(string, font)
+  local lines = #split(string, "\n")
+  return font:getHeight() * lines
+end
