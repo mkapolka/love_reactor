@@ -368,3 +368,12 @@ update_stream.map(function()
     end
   end
 end)
+
+
+-- #############
+--  SINGLETONS
+-- #############
+
+singleton = component(function(thing)
+  thing.class.instance = thing
+end)
