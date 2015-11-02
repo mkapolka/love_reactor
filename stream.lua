@@ -125,6 +125,13 @@ function make_stream()
     return output
   end
 
+  function self.combine(other)
+    local output = make_stream()
+    self.attach(output)
+    other.attach(output)
+    return output
+  end
+
   function self.buffer_latest(flush)
     -- Makes a stream that stores values from input and sends them down when we get a signal from flush
     local cached = nil
