@@ -254,14 +254,18 @@ clickable = component(function(thing)
     y = 0,
     width = 0,
     height = 0,
-    origin = {x=0, y=0}
+    origin = {x=0, y=0},
+    __moused_over = false
   })(thing)
   thing.click_stream = make_stream()
+  thing.mouse_over = make_stream()
+  thing.mouse_out = make_stream()
 end)
 
 clickable_stream = make_stream()
 
-function check_clickable(clickable, callback, mx, my, mb, type)
+function is_mouse_over(clickable)
+  local mx, my = love.mouse.getPosition()
   local rect = {
     x = clickable.x - clickable.origin.x,
     y = clickable.y - clickable.origin.y,
@@ -270,8 +274,15 @@ function check_clickable(clickable, callback, mx, my, mb, type)
   }
   if rect.x < mx and mx < rect.x + rect.width then
     if rect.y < my and my < rect.y + rect.height then
-      callback(clickable, mx, my, mb, type)
+      return true
     end
+  end
+  return false
+end
+
+function check_clickable(clickable, callback, mx, my, mb, type)
+  if is_mouse_over(clickable) then
+    callback(clickable, mx, my, mb, type)
   end
 end
 
@@ -293,6 +304,21 @@ click_stream.map(function(event)
     clickable_stream.send(event)
     event.target.click_stream.send(event)
   end, event.x, event.y, event.button, event.type)
+end)
+
+update_stream.map(function(mouse)
+  for _, clickable in pairs(clickable.instances.values()) do 
+    local moused_over = is_mouse_over(clickable)
+    if clickable.__moused_over and not moused_over then
+      clickable.mouse_out.send("out")
+      clickable.__moused_over = false
+    end
+
+    if not clickable.__moused_over and moused_over then
+      clickable.mouse_over.send("over")
+      clickable.__moused_over = true
+    end
+  end
 end)
 
 -- #############
