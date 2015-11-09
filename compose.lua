@@ -48,6 +48,24 @@ function component(callback, requirements)
   return self
 end
 
+__rxo_mt = {}
+__rxo_mt.__index = function(self, key)
+  if key == "position" then
+    return {x = self.x, y = self.y}
+  else
+    return nil
+  end
+end
+
+__rxo_mt.__newindex = function(self, key, value)
+  if key == "position" then
+    rawset(self, "x", value.x)
+    rawset(self, "y", value.y)
+  else
+    rawset(self, key, value)
+  end
+end
+
 function class(schema, components, membership)
   local self = {}
   local components = components or {}
@@ -59,6 +77,7 @@ function class(schema, components, membership)
       components = {},
       class = self
     }
+    setmetatable(output, __rxo_mt)
     if partial then
       apply_schema(partial)(output)
     end
