@@ -7,7 +7,8 @@ function make_stream()
   self.listeners = {}
   self.inputs = {}
   function self.send(value)
-    for _, listener in pairs(self.listeners) do
+    local clone = shallow_clone(self.listeners)
+    for _, listener in pairs(clone) do
       listener.receive(value)
     end
   end
