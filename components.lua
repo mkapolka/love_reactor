@@ -355,7 +355,7 @@ animatable = component(function(thing)
       local target_animation = self.animations[name]
       if self._current_animation ~= target_animation or force then
         self._current_animation = target_animation
-        self._frame_timer = self._current_animation.speed
+        self._frame_timer = self._current_animation.speed or 1
         self:set_frame(1)
       end
     end,
@@ -384,7 +384,7 @@ update_stream.map(function()
         else
           local frame = frame + 1
           animatable:set_frame(frame)
-          animatable._frame_timer = animatable._current_animation.speed
+          animatable._frame_timer = animatable._current_animation.speed or 1
         end
       end
     end
