@@ -9,8 +9,19 @@ require("love_reactor/utils")
 -- ###########
 
 camera = {
-  x = 0, y = 0
+  x = 0, y = 0,
+  _following = nil,
+  follow = function(self, target)
+    self._following = target
+  end
 }
+
+update_stream.map(function(e)
+  if camera._following then
+    camera.x = -camera._following.x + love.window.getWidth() / 2
+    camera.y = -camera._following.y + love.window.getHeight() / 2
+  end
+end)
 
 function draw_drawable(drawable)
   love.graphics.setColor(drawable.color)
@@ -338,10 +349,13 @@ animatable = component(function(thing)
     _current_frame = 1,
     _frame_timer = 0,
     finished_animation = make_stream(),
-    play = function(self, name)
-      self._current_animation = self.animations[name]
-      self._frame_timer = self._current_animation.speed
-      self:set_frame(1)
+    play = function(self, name, force)
+      local target_animation = self.animations[name]
+      if self._current_animation ~= target_animation or force then
+        self._current_animation = target_animation
+        self._frame_timer = self._current_animation.speed
+        self:set_frame(1)
+      end
     end,
     set_frame = function(self, frame)
       self._current_frame = frame
@@ -355,15 +369,17 @@ end)
 
 update_stream.map(function()
   for _, animatable in pairs(animatable.instances.values()) do
-    animatable._frame_timer = animatable._frame_timer - love.timer.getDelta()
-    if animatable._frame_timer < 0 then
-      local frame = animatable._current_frame % #(animatable._current_animation.frames)
-      if frame == 0 and animatable._current_animation.next then
-        animatable:play(animatable._current_animation.next)
-      else
-        local frame = frame + 1
-        animatable:set_frame(frame)
-        animatable._frame_timer = animatable._current_animation.speed
+    if animatable._current_animation then
+      animatable._frame_timer = animatable._frame_timer - love.timer.getDelta()
+      if animatable._frame_timer < 0 then
+        local frame = animatable._current_frame % #(animatable._current_animation.frames)
+        if frame == 0 and animatable._current_animation.next then
+          animatable:play(animatable._current_animation.next)
+        else
+          local frame = frame + 1
+          animatable:set_frame(frame)
+          animatable._frame_timer = animatable._current_animation.speed
+        end
       end
     end
   end
