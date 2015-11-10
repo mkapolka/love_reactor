@@ -58,8 +58,8 @@ drawable = component(function(self)
   if self.sprite then
     if not self.offset then
       self.offset = {
-        x = self.sprite:getWidth() / 2,
-        y = self.sprite:getHeight() / 2
+        x = (self.width or self.sprite:getWidth()) / 2,
+        y = (self.height or self.sprite:getHeight()) / 2
       }
     end
 
@@ -331,6 +331,8 @@ end)
 -- }
 
 animatable = component(function(thing)
+  -- Should we slice the sprite for the user?
+  local auto_slice = not thing.frames and thing.width and thing.height
   apply_schema({
     frames = {}, -- list of quads
     animations = {}, -- list of animations
@@ -348,6 +350,10 @@ animatable = component(function(thing)
       self.quad = self.frames[self._current_animation.frames[self._current_frame]]
     end
   })(thing)
+  if auto_slice then
+    thing.frames = split_tiles(thing.sprite, thing.width, thing.height)
+  end
+
   if thing.start_animation then
     thing:play(thing.start_animation)
   end
