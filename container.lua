@@ -76,6 +76,12 @@ function rxcontainer()
     end
   end
 
+  function self.map(func)
+    for _, member in pairs(self.values()) do
+      func(member)
+    end
+  end
+
   function self._attach_aggregates(member)
     for field_name, stream in pairs(self._aggregate_streams) do
       member[field_name].take_until(self.removed.filter(function(e) return e == member end))
