@@ -11,6 +11,8 @@ require("love_reactor/utils")
 camera = {
   x = 0, y = 0,
   _following = nil,
+  min = {x=-math.huge, y=-math.huge},
+  max = {x=math.huge, y=math.huge},
   follow = function(self, target)
     self._following = target
   end
@@ -18,8 +20,15 @@ camera = {
 
 update_stream.map(function(e)
   if camera._following then
-    camera.x = -camera._following.x + love.window.getWidth() / 2
-    camera.y = -camera._following.y + love.window.getHeight() / 2
+    local minny = camera.min
+    local maxxy = vector.sub(camera.max, {x = love.window.getWidth(), y = love.window.getHeight()})
+    maxxy.x = math.max(minny.x, maxxy.x)
+    maxxy.y = math.max(minny.y, maxxy.y)
+
+    local cx = math.clamp(camera._following.x - love.window.getWidth() / 2, minny.x, maxxy.x)
+    local cy = math.clamp(camera._following.y - love.window.getHeight() / 2, minny.y, maxxy.y)
+    camera.x = -cx
+    camera.y = -cy
   end
 end)
 
@@ -76,8 +85,8 @@ drawable = component(function(self)
 
     if not self.origin then
       self.origin = {
-        x = self.sprite:getWidth() / 2,
-        y = self.sprite:getHeight() / 2
+        x = (self.width or self.sprite:getWidth()) / 2,
+        y = (self.height or self.sprite:getHeight()) / 2
       }
     end
 
@@ -254,6 +263,17 @@ function dumb_collisions(ca, cb)
   cb.x = cb.x - normalized.x * love.timer.getDelta() * pushForce * 10
   cb.y = cb.y - normalized.y * love.timer.getDelta() * pushForce * 10
 end
+
+-- debug method to draw boxes around collidables
+function _draw_collision_boxes()
+  draw_stream.map(function()
+    for _, d in pairs(collidable.instances.values()) do
+      local d = d:get_bounds()
+      love.graphics.rectangle("line", d.x, d.y, d.width, d.height)
+    end
+  end)
+end
+
 
 -- #############
 --  CLICKABLES

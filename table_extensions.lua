@@ -134,3 +134,9 @@ function table.member_set(t)
   end
   return output
 end
+
+function table.apply(t1, t2)
+  for k, v in pairs(t2) do
+    t1[k] = v
+  end
+end
