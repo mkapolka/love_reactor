@@ -264,6 +264,55 @@ function dumb_collisions(ca, cb)
   cb.y = cb.y - normalized.y * love.timer.getDelta() * pushForce * 10
 end
 
+function simple_collisions(ca, cb)
+  local ba = ca:get_bounds()
+  local bb = cb:get_bounds()
+  local center_a = {x = ba.x + ba.width / 2, y = ba.y + ba.height / 2}
+  local center_b = {x = bb.x + bb.width / 2, y = bb.y + bb.height / 2}
+
+  local left, right
+  if center_a.x < center_b.x then
+    left = ca
+    right = cb
+  else
+    left = cb
+    right = ca
+  end
+
+  local bounds_left = left:get_bounds()
+  local bounds_right = right:get_bounds()
+
+  local x_depth = (bounds_left.x + bounds_left.width) - bounds_right.x
+
+  local up, down
+  if center_a.y < center_b.y then
+    up = ca
+    down = cb
+  else
+    up = cb
+    down = ca
+  end
+
+  local bounds_up = up:get_bounds()
+  local bounds_down = down:get_bounds()
+
+  local y_depth = (bounds_up.y + bounds_up.height) - bounds_down.y
+
+  if math.abs(x_depth) < math.abs(y_depth) then
+    local lf = (left.immobile and 0) or 1 * ((right.immobile and 1) or .5 )
+    local rf = (right.immobile and 0) or 1 * ((left.immobile and 1) or .5)
+
+    left.x = left.x - (x_depth * lf)
+    right.x = right.x + (x_depth * rf)
+  else
+    local uf = (up.immobile and 0) or 1 * ((down.immobile and 1) or .5 )
+    local df = (down.immobile and 0) or 1 * ((up.immobile and 1) or .5)
+
+    up.y = up.y - (y_depth * uf)
+    down.y = down.y + (y_depth * df)
+  end
+end
+
 -- debug method to draw boxes around collidables
 function _draw_collision_boxes()
   draw_stream.map(function()
