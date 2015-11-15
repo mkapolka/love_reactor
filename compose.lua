@@ -93,13 +93,13 @@ function class(schema, components, membership)
     end
 
     function output.destroy()
+      output.on_destroy.send("destroyed")
       for _, component in pairs(components) do
         remove_component(output, component)
       end
       for _, container in pairs(membership) do
         container.remove(output)
       end
-      output.on_destroy.send("destroyed")
     end
 
     output.init = output.init or function() end
