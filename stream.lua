@@ -249,10 +249,7 @@ function love.update()
 end
 
 function love.draw()
-  love.graphics.push()
-  love.graphics.translate(camera.x, camera.y)
   draw_stream.send("draw")
-  love.graphics.pop()
 end
 
 function love.mousepressed(x, y, button)

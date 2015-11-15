@@ -15,6 +15,9 @@ camera = {
   max = {x=math.huge, y=math.huge},
   follow = function(self, target)
     self._following = target
+  end,
+  translate = function(self)
+    love.graphics.translate(math.floor(self.x), math.floor(self.y))
   end
 }
 
@@ -33,6 +36,12 @@ update_stream.map(function(e)
 end)
 
 function draw_drawable(drawable)
+  love.graphics.push("all")
+
+  if not drawable.ignore_camera then
+    camera:translate()
+  end
+
   love.graphics.setColor(drawable.color)
   if drawable.quad then
     local spriteWidth = drawable.sprite:getWidth()
@@ -60,7 +69,7 @@ function draw_drawable(drawable)
                        math.floor(drawable.offset.y)
                       )
   end
-  love.graphics.setColor(255, 255, 255, 255)
+  love.graphics.pop()
 end
 
 drawable = component(function(self)
@@ -317,8 +326,11 @@ end
 function _draw_collision_boxes()
   draw_stream.map(function()
     for _, d in pairs(collidable.instances.values()) do
-      local d = d:get_bounds()
-      love.graphics.rectangle("line", d.x, d.y, d.width, d.height)
+      love.graphics.push("all")
+      camera:translate()
+        local d = d:get_bounds()
+        love.graphics.rectangle("line", d.x, d.y, d.width, d.height)
+      love.graphics.pop()
     end
   end)
 end
@@ -467,4 +479,10 @@ end)
 
 singleton = component(function(thing)
   thing.class.instance = thing
+  thing.on_destroy
+    .map(function()
+      if thing.class.instance == thing then
+        thing.class.instance = nil
+      end
+    end)
 end)
