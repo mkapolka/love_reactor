@@ -55,9 +55,9 @@ function rxcontainer()
       stream = make_stream()
       self._aggregate_streams[field_name] = stream
       for v, _ in pairs(self.contents) do
-        member[field_name].take_until(self.removed.filter(function(e) return e == member end))
+        v[field_name].take_until(self.removed.filter(function(e) return e == v end))
           .map(function(v)
-            return {member = member, value = v}
+            return {member = v, value = v}
           end).attach(stream)
         end
     end
