@@ -82,6 +82,17 @@ function rxcontainer()
     end
   end
 
+  function self.filter(func)
+    local output = rxcontainer()
+    output.values = function()
+      return table.filter(self.values(), func)
+    end
+    output.contains = function(what)
+      return self.contains(what) and func(what)
+    end
+    return output
+  end
+
   function self._attach_aggregates(member)
     for field_name, stream in pairs(self._aggregate_streams) do
       member[field_name].take_until(self.removed.filter(function(e) return e == member end))
