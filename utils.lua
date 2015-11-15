@@ -63,7 +63,7 @@ function getTextHeight(string, font)
   return font:getHeight() * lines
 end
 
-function random.point_within(rect_like)
+function random_point_within(rect_like)
   return {
     x = math.random(rect_like.x, rect_like.x + rect_like.width / 2),
     y = math.random(rect_like.y, rect_like.y + rect_like.height/ 2)
