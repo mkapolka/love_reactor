@@ -170,6 +170,7 @@ collidable = component(function(self)
     y = 0,
     width = 0,
     height = 0,
+    __colliding_with = {},
     collision_stream = make_stream(),
     get_bounds = function(self)
       return {
@@ -194,7 +195,7 @@ end)
 
 collision_stream = make_stream()
 
-function check_collision(ca, cb, callback)
+function check_collision(ca, cb, callback, negative_callback)
   local a_bounds = ca:get_bounds()
   local b_bounds = cb:get_bounds()
   local center_a = {x = a_bounds.x + a_bounds.width / 2, y = a_bounds.y + a_bounds.height / 2}
@@ -202,28 +203,50 @@ function check_collision(ca, cb, callback)
   if math.abs(center_a.x - center_b.x) < (a_bounds.width / 2 + b_bounds.width / 2) and
      math.abs(center_a.y - center_b.y) < (a_bounds.height / 2 + b_bounds.height / 2) then
     callback(ca, cb)
+  else
+    if negative_callback then
+      negative_callback(ca, cb)
+    end
   end
 end
 
-function check_collisions(collidables, callback)
+function check_collisions(collidables, callback, negative_callback)
   for i=1,#collidables do
     for j=i+1,#collidables do
       local ca = collidables[i]
       local cb = collidables[j]
-      check_collision(ca, cb, callback)
+      check_collision(ca, cb, callback, negative_callback)
     end
   end
 end
 
 update_stream.map(function()
   check_collisions(collidable.instances.values(), function(ca, cb)
+    local type = (ca.__colliding_with[cb] and "continue") or "start"
+    ca.__colliding_with[cb] = true
+    cb.__colliding_with[ca] = true
     local collision_event = {
       a = ca,
-      b = cb
+      b = cb,
+      type = type
     }
     collision_stream.send(collision_event)
     ca.collision_stream.send(collision_event)
     cb.collision_stream.send(collision_event)
+  end,
+  function(ca, cb)
+    if ca.__colliding_with[cb] or cb.__colliding_with[ca] then
+      ca.__colliding_with[cb] = false
+      cb.__colliding_with[ca] = false
+      local collision_event = {
+        a = ca,
+        b = cb,
+        type = "end"
+      }
+      ca.collision_stream.send(collision_event)
+      cb.collision_stream.send(collision_event)
+      collision_stream.send(collision_event)
+    end
   end)
 end)
 
