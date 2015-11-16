@@ -13,6 +13,11 @@ function apply_schema(schema)
 end
 
 function apply_component(thing, component)
+  for _, requirement in pairs(component.requirements) do
+    if not has_component(thing, requirement) then
+      apply_component(thing, requirement)
+    end
+  end
   component.callback(thing)  
   thing.components[component] = true
   component.instances.add(thing)
@@ -20,6 +25,9 @@ end
 
 function remove_component(thing, component)
   component.instances.remove(thing)
+  for _, requirement in pairs(component.requirements) do
+    remove_component(thing, requirement)
+  end
   thing.components[component] = nil
 end
 
@@ -30,19 +38,8 @@ end
 function component(callback, requirements)
   local self = {}
 
-  if requirements then
-    local pre_callback = callback
-    callback = function(thing)
-      for _, requirement in pairs(requirements) do
-        if not has_component(thing, requirement) then
-          apply_component(thing, requirement)
-        end
-      end
-      pre_callback(thing)
-    end
-  end
-
   self.callback = callback
+  self.requirements = requirements or {}
   self.instances = rxcontainer()
 
   return self
@@ -80,6 +77,9 @@ function class(schema, components, membership)
     setmetatable(output, __rxo_mt)
     if partial then
       apply_schema(partial)(output)
+      if partial.position then
+        output.position = partial.position
+      end
     end
     apply_schema(schema)(output)
 
