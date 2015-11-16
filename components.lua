@@ -231,8 +231,14 @@ update_stream.map(function()
       type = type
     }
     collision_stream.send(collision_event)
-    ca.collision_stream.send(collision_event)
-    cb.collision_stream.send(collision_event)
+    ca.collision_stream.send({
+      other = cb,
+      type = type
+    })
+    cb.collision_stream.send({
+      other = ca,
+      type = type
+    })
   end,
   function(ca, cb)
     if ca.__colliding_with[cb] or cb.__colliding_with[ca] then
@@ -243,9 +249,15 @@ update_stream.map(function()
         b = cb,
         type = "end"
       }
-      ca.collision_stream.send(collision_event)
-      cb.collision_stream.send(collision_event)
       collision_stream.send(collision_event)
+      ca.collision_stream.send({
+        other = cb,
+        type = "end"
+      })
+      cb.collision_stream.send({
+        other = ca,
+        type = "end"
+      })
     end
   end)
 end)
@@ -509,3 +521,35 @@ singleton = component(function(thing)
       end
     end)
 end)
+
+-- #############
+--  DRAGGABLE
+-- #############
+
+draggable = component(function(output)
+  output.drag_begin = make_stream()
+  output.drag_end = make_stream()
+  output.drag_stream = make_stream()
+end, {clickable})
+
+draggable.instances.aggregate("click_stream")
+  .filter(function(e) return e.value.type == "down" end)
+  .buffer(update_stream)
+  .map(function(v) return table.min(v, function(e) return e.member.depth or 0 end) end)
+  .filter(function(e) return e end)
+  .map(function(e)
+    local e = e.value
+    e.target.drag_begin.send("drag_begin")
+
+    local mouse_up_stream = click_stream.filter(function(e) return e.type == "up" end)
+    mouse_up_stream.map(function(_)
+      e.target.drag_end.send("drag_end")
+      return no_more
+    end)
+
+    update_stream
+      .take_until(mouse_up_stream)
+      .map(function()
+        e.target.drag_stream.send("drag_continue")
+      end)
+  end)
