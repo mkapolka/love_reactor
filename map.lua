@@ -45,6 +45,9 @@ function parse_map(data)
     height = output.height or love.window.getHeight()
   end
 
+  output.width = width
+  output.height = height
+
   for y=1,#data.data do
     output.tiles[y] = {}
     local line = data.data[y]
