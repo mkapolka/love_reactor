@@ -86,10 +86,7 @@ function class(schema, components, membership)
     output.on_destroy = make_stream()
 
     for _, component in pairs(components) do
-      apply_component(output, component)
-    end
-    for _, container in pairs(membership) do
-      container.add(output)
+      apply_component(output, component, false)
     end
 
     function output.destroy()
@@ -104,6 +101,10 @@ function class(schema, components, membership)
 
     output.init = output.init or function() end
     output:init(...)
+
+    for _, container in pairs(membership) do
+      container.add(output)
+    end
 
     return output
   end
