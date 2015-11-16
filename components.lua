@@ -487,7 +487,7 @@ animatable = component(function(thing)
   if thing.start_animation then
     thing:play(thing.start_animation)
   end
-end)
+end, {drawable})
 
 update_stream.map(function()
   for _, animatable in pairs(animatable.instances.values()) do
