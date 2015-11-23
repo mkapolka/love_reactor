@@ -106,6 +106,10 @@ drawable = component(function(self)
     if not self.height then
       self.height = self.sprite:getHeight()
     end
+  else
+    if not self.offset then
+      self.offset = {x = 0, y = 0}
+    end
   end
 end)
 
