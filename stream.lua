@@ -126,6 +126,15 @@ function make_stream()
     return output
   end
 
+  function self.take_one()
+    local output = make_stream()
+    self.map(function(value)
+      output.send(value)
+      return no_more
+    end)
+    return output
+  end
+
   function self.combine(other)
     local output = make_stream()
     self.attach(output)
@@ -184,7 +193,6 @@ function make_stream()
       update_stream
         .map(function()
           time_left = time_left - love.timer.getDelta()
-          print(time_left)
           if time_left < 0 then
             output.send(value)
             return no_more
