@@ -176,6 +176,24 @@ function make_stream()
 
     return buffer_stream
   end
+
+  function self.delay(time)
+    local output = make_stream()
+    output.receive = function(value)
+      local time_left = time
+      update_stream
+        .map(function()
+          time_left = time_left - love.timer.getDelta()
+          print(time_left)
+          if time_left < 0 then
+            output.send(value)
+            return no_more
+          end
+        end)
+    end
+    self.attach(output)
+    return output
+  end
   
   function self.print(prepend)
     prepend = prepend or ""
