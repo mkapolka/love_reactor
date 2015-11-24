@@ -69,3 +69,7 @@ function random_point_within(rect_like)
     y = math.random(rect_like.y, rect_like.y + rect_like.height/ 2)
   }
 end
+
+function identity(...)
+  return ...
+end
