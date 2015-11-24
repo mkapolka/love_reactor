@@ -495,6 +495,15 @@ animatable = component(function(thing)
 
   if thing.start_animation then
     thing:play(thing.start_animation)
+  else
+    local first_anim = nil
+    for key, _ in pairs(thing.animations) do
+      first_anim = key
+      break
+    end
+    if first_anim then
+      thing:play(first_anim)
+    end
   end
 end, {drawable})
 
