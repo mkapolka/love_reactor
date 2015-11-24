@@ -133,6 +133,8 @@ movable = component(apply_schema({
   x = 0, y = 0,
   velocity = {x = 0, y = 0},
   acceleration = {x = 0, y = 0},
+  angular_velocity = 0,
+  angular_acceleration = 0,
   drag = {x = 0, y = 0}
 }))
 
@@ -156,6 +158,9 @@ function update_movable(movable)
   else
     movable.velocity.y = movable.velocity.y + dvy * (movable.velocity.y > 0 and -1 or 1)
   end
+
+  movable.rotation = movable.rotation + movable.angular_velocity * love.timer.getDelta()
+  movable.angular_velocity = movable.angular_velocity + movable.angular_acceleration * love.timer.getDelta()
 end
 
 update_stream.map(function(x)
