@@ -36,6 +36,10 @@ function make_stream()
     return output
   end
 
+  function self.map_filter(f)
+    return self.map(f).filter(identity)
+  end
+
   function self.mapValue(value)
     return self.map(function(_)
       return value
@@ -198,6 +202,19 @@ function make_stream()
             return no_more
           end
         end)
+    end
+    self.attach(output)
+    return output
+  end
+
+  function self.throttle(time_between)
+    local output = make_stream()
+    output.last_message = 0
+    output.receive = function(value)
+      if (love.timer.getTime() - output.last_message) > time_between then
+        output.send(value)
+        output.last_message = love.timer.getTime()
+      end
     end
     self.attach(output)
     return output
