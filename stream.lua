@@ -207,9 +207,9 @@ function make_stream()
     return output
   end
 
-  function self.throttle(time_between)
+  function self.throttle(time_between, delay_initial)
     local output = make_stream()
-    output.last_message = 0
+    output.last_message = (delay_initial and love.timer.getTime()) or 0
     output.receive = function(value)
       if (love.timer.getTime() - output.last_message) > time_between then
         output.send(value)
