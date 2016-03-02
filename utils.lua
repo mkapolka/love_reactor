@@ -69,3 +69,12 @@ function random_point_within(rect_like)
     y = math.random(rect_like.y, rect_like.y + rect_like.height/ 2)
   }
 end
+
+function partial(f, ...)
+  local arg = {...}
+  partial_arg = arg
+  return function(...)
+    local arg = {...}
+    f(unpack(partial_arg), unpack(arg))
+  end
+end
