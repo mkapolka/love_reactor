@@ -1,10 +1,59 @@
 require("love_reactor/stream")
 
+
+__rxinstance_mt = {}
+__rxinstance_mt.stream = function(self, name)
+  local stream = self.__streams[name]
+  if not stream then
+    stream = newStream()
+    self.__streams[name] = stream
+
+    if self.__value then
+      self.__value[name]:attach(stream)
+    end
+  end
+  return stream
+end
+
+__rxinstance_mt.__detach_streams = function(self)
+  for name, stream in pairs(self.__streams) do
+    stream:detach_from(self.__value[name])
+  end
+end
+
+__rxinstance_mt.__attach_streams = function(self)
+  for name, stream in pairs(self.__streams) do
+    self.__value[name]:attach(stream)
+  end
+end
+
+__rxinstance_mt.set = function(self, value)
+  if self.__value then
+    self:_detach_streams()
+  end
+  self.__value = value
+  self:__attach_streams()
+end
+
+__rxinstance_mt.get = function(self)
+  return self.__value
+end
+
+function rxinstance(initial_value)
+  local self = {}
+  self.__streams = {}
+  setmetatable(self, {
+    __index = __rxinstance_mt
+  })
+  self:set(initial_value)
+  return self
+end
+
 function rxcontainer()
   local self = {}
   self.contents = {}
-  self.added = make_stream()
-  self.removed = make_stream()
+  self.added = newStream()
+  self.removed = newStream()
   self._values = {}
   self._aggregate_streams = {}
 
@@ -13,7 +62,7 @@ function rxcontainer()
     self.contents[thing] = true 
     if not was_present then
       self._attach_aggregates(thing)
-      self.added.send(thing)
+      self.added:send(thing)
     end
     self._cache_values()
   end
@@ -22,7 +71,7 @@ function rxcontainer()
     local was_present = self.contents[thing]
     self.contents[thing] = nil
     if was_present then
-      self.removed.send(thing)
+      self.removed:send(thing)
     end
     self._cache_values()
   end
@@ -52,13 +101,13 @@ function rxcontainer()
   function self.aggregate(field_name)
     local stream = self._aggregate_streams[field_name]
     if not stream then
-      stream = make_stream()
+      stream = newStream()
       self._aggregate_streams[field_name] = stream
       for v, _ in pairs(self.contents) do
-        v[field_name].take_until(self.removed.filter(function(e) return e == v end))
-          .map(function(v)
+        v[field_name]:takeUntil(self.removed:filter(function(e) return e == v end))
+          :map(function(v)
             return {member = v, value = v}
-          end).attach(stream)
+          end):attach(stream)
         end
     end
     return stream
@@ -67,6 +116,12 @@ function rxcontainer()
   function self.call(fname, ...)
     for _, member in pairs(self.values()) do
       member[fname](...)
+    end
+  end
+
+  function self.callBound(fname, ...)
+    for _, member in pairs(self.values()) do
+      member[fname](member, ...)
     end
   end
 
@@ -104,10 +159,10 @@ function rxcontainer()
       if not member[field_name] then
         error("Member has no stream named '" .. field_name .. "'")
       end
-      member[field_name].take_until(self.removed.filter(function(e) return e == member end))
-        .map(function(v)
+      member[field_name]:takeUntil(self.removed:filter(function(e) return e == member end))
+        :map(function(v)
             return {member = member, value = v}
-        end).attach(stream)
+        end):attach(stream)
     end
   end
 
@@ -119,9 +174,9 @@ function union(...)
   local containers = {...}
   for _, container in pairs(containers) do
     container.added
-      .map(function(t) output.add(t) end)
+      :map(function(t) output.add(t) end)
     container.removed
-      .map(function(t) output.remove(t) end)
+      :map(function(t) output.remove(t) end)
     for k, _ in pairs(container.contents) do
       output.add(k)
     end
@@ -133,19 +188,19 @@ function difference(rxc1, rxc2)
   local output = rxcontainer()
   container = {rxc1, rxc2}
   rxc1.added
-    .map(function(v)
+    :map(function(v)
       if not rxc2.contents[v] then
         output.add(v)
       end
     end)
 
   rxc1.removed
-    .map(function(v)
+    :map(function(v)
       output.remove(v)
     end)
 
   rxc2.added
-    .map(function(v)
+    :map(function(v)
       output.remove(v)
     end)
   return output

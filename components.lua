@@ -21,7 +21,7 @@ camera = {
   end
 }
 
-update_stream.map(function(e)
+updateStream:map(function(e)
   if camera._following then
     local minny = camera.min
     local maxxy = vector.sub(camera.max, {x = love.window.getWidth(), y = love.window.getHeight()})
@@ -83,7 +83,7 @@ drawable = component(function(self)
     depth = 0,
     visible = true,
     draw = draw_drawable
-  })(self)
+  }, self)
   if self.sprite then
     if not self.offset then
       self.offset = {
@@ -110,8 +110,8 @@ drawable = component(function(self)
 end)
 
 -- Draw drawables on "draw" event
-draw_stream
-  .map(function()
+drawStream
+  :map(function()
     local drawables = simple_clone(drawable.instances.values())
     table.sort(drawables, function(v1, v2) return v1.depth > v2.depth end)
     for _, v in pairs(drawables) do
@@ -125,7 +125,7 @@ draw_stream
 --  MOVABLES
 -- #########
 
-movable = component(apply_schema({
+movable = component(partial(apply_schema, {
   x = 0, y = 0,
   velocity = {x = 0, y = 0},
   acceleration = {x = 0, y = 0},
@@ -154,7 +154,7 @@ function update_movable(movable)
   end
 end
 
-update_stream.map(function(x)
+updateStream:map(function(x)
   for _, movable in pairs(movable.instances.values()) do
     update_movable(movable)
   end
@@ -171,7 +171,7 @@ collidable = component(function(self)
     width = 0,
     height = 0,
     __colliding_with = {},
-    collision_stream = make_stream(),
+    collision_stream = newStream(),
     get_bounds = function(self)
       return {
         x = self.x - self.origin.x,
@@ -180,7 +180,7 @@ collidable = component(function(self)
         height = self.height
       }
     end
-  })(self)
+  }, self)
   if self.sprite and not self.origin then
     self.origin = {
       x = self.sprite:getWidth() / 2,
@@ -193,7 +193,7 @@ collidable = component(function(self)
   end
 end)
 
-collision_stream = make_stream()
+collision_stream = newStream()
 
 function check_collision(ca, cb, callback, negative_callback)
   local a_bounds = ca:get_bounds()
@@ -220,7 +220,7 @@ function check_collisions(collidables, callback, negative_callback)
   end
 end
 
-update_stream.map(function()
+updateStream:map(function()
   check_collisions(collidable.instances.values(), function(ca, cb)
     local type = (ca.__colliding_with[cb] and "continue") or "start"
     ca.__colliding_with[cb] = true
@@ -230,12 +230,12 @@ update_stream.map(function()
       b = cb,
       type = type
     }
-    collision_stream.send(collision_event)
-    ca.collision_stream.send({
+    collision_stream:send(collision_event)
+    ca.collision_stream:send({
       other = cb,
       type = type
     })
-    cb.collision_stream.send({
+    cb.collision_stream:send({
       other = ca,
       type = type
     })
@@ -249,12 +249,12 @@ update_stream.map(function()
         b = cb,
         type = "end"
       }
-      collision_stream.send(collision_event)
-      ca.collision_stream.send({
+      collision_stream:send(collision_event)
+      ca.collision_stream:send({
         other = cb,
         type = "end"
       })
-      cb.collision_stream.send({
+      cb.collision_stream:send({
         other = ca,
         type = "end"
       })
@@ -277,35 +277,6 @@ function collision_between(group_1, group_2)
     return nil
   end
   return check
-end
-
-function dumb_collisions(ca, cb)
-  local ba = ca:get_bounds()
-  local bb = cb:get_bounds()
-  local center_a = {x = ba.x + ba.width / 2, y = ba.y + ba.height / 2}
-  local center_b = {x = bb.x + bb.width / 2, y = bb.y + bb.height / 2}
-  local delta = {
-    x = center_a.x - center_b.x,
-    y = center_a.y - center_b.y
-  }
-  local magnitude = math.sqrt(delta.x * delta.x + delta.y * delta.y)
-  local normalized
-  if magnitude > 0 then
-    normalized = {
-      x = delta.x / magnitude,
-      y = delta.y / magnitude
-    }
-  else
-    normalized = {
-      x = 1,
-      y = 0
-    }
-  end
-  local pushForce = math.max(0, 100 - magnitude)
-  ca.x = ca.x + normalized.x * love.timer.getDelta() * pushForce * 10
-  ca.y = ca.y + normalized.y * love.timer.getDelta() * pushForce * 10
-  cb.x = cb.x - normalized.x * love.timer.getDelta() * pushForce * 10
-  cb.y = cb.y - normalized.y * love.timer.getDelta() * pushForce * 10
 end
 
 function simple_collisions(ca, cb)
@@ -359,7 +330,7 @@ end
 
 -- debug method to draw boxes around collidables
 function _draw_collision_boxes()
-  draw_stream.map(function()
+  drawStream:map(function()
     for _, d in pairs(collidable.instances.values()) do
       love.graphics.push("all")
       camera:translate()
@@ -383,13 +354,11 @@ clickable = component(function(thing)
     height = 0,
     origin = {x=0, y=0},
     __moused_over = false
-  })(thing)
-  thing.click_stream = make_stream()
-  thing.mouse_over = make_stream()
-  thing.mouse_out = make_stream()
+  }, thing)
+  thing.click_stream = newStream()
+  thing.mouse_over = newStream()
+  thing.mouse_out = newStream()
 end)
-
-clickable_stream = make_stream()
 
 function is_mouse_over(clickable)
   local mx, my = love.mouse.getPosition()
@@ -407,19 +376,15 @@ function is_mouse_over(clickable)
   return false
 end
 
-function check_clickable(clickable, callback, mx, my, mb, type)
-  if is_mouse_over(clickable) then
-    callback(clickable, mx, my, mb, type)
-  end
-end
-
 function check_clickables(clickables, callback, mx, my, mb, type)
   for _, clickable in pairs(clickables) do
-    check_clickable(clickable, callback, mx, my, mb)
+    if is_mouse_over(clickable) then
+      callback(clickable, mx, my, mb, type)
+    end
   end
 end
 
-click_stream.map(function(event)
+clickStream:map(function(event)
   check_clickables(clickable.instances.values(), function(clickable, mx, my, mb)
     local event = {
       target = clickable,
@@ -428,21 +393,20 @@ click_stream.map(function(event)
       button = mb,
       type = event.type
     }
-    clickable_stream.send(event)
-    event.target.click_stream.send(event)
+    event.target.click_stream:send(event)
   end, event.x, event.y, event.button, event.type)
 end)
 
-update_stream.map(function(mouse)
+updateStream:map(function(mouse)
   for _, clickable in pairs(clickable.instances.values()) do 
     local moused_over = is_mouse_over(clickable)
     if clickable.__moused_over and not moused_over then
-      clickable.mouse_out.send("out")
+      clickable.mouse_out:send("out")
       clickable.__moused_over = false
     end
 
     if not clickable.__moused_over and moused_over then
-      clickable.mouse_over.send("over")
+      clickable.mouse_over:send("over")
       clickable.__moused_over = true
     end
   end
@@ -466,7 +430,7 @@ animatable = component(function(thing)
     _current_animation = nil,
     _current_frame = 1,
     _frame_timer = 0,
-    finished_animation = make_stream(),
+    finished_animation = newStream(),
     play = function(self, name, force)
       local target_animation = self.animations[name]
       if self._current_animation ~= target_animation or force then
@@ -479,7 +443,7 @@ animatable = component(function(thing)
       self._current_frame = frame
       self.quad = self.frames[self._current_animation.frames[self._current_frame]]
     end
-  })(thing)
+  }, thing)
   if auto_slice then
     thing.frames = split_tiles(thing.sprite, thing.width, thing.height)
   end
@@ -489,7 +453,7 @@ animatable = component(function(thing)
   end
 end, {drawable})
 
-update_stream.map(function()
+updateStream:map(function()
   for _, animatable in pairs(animatable.instances.values()) do
     if animatable._current_animation then
       animatable._frame_timer = animatable._frame_timer - love.timer.getDelta()
@@ -514,8 +478,9 @@ end)
 
 singleton = component(function(thing)
   thing.class.instance = thing
+  thing.class.rxinstance:set(thing)
   thing.on_destroy
-    .map(function()
+    :map(function()
       if thing.class.instance == thing then
         thing.class.instance = nil
       end
@@ -527,29 +492,29 @@ end)
 -- #############
 
 draggable = component(function(output)
-  output.drag_begin = make_stream()
-  output.drag_end = make_stream()
-  output.drag_stream = make_stream()
+  output.drag_begin = newStream()
+  output.drag_end = newStream()
+  output.drag_stream = newStream()
 end, {clickable})
 
 draggable.instances.aggregate("click_stream")
-  .filter(function(e) return e.value.type == "down" end)
-  .buffer(update_stream)
-  .map(function(v) return table.min(v, function(e) return e.member.depth or 0 end) end)
-  .filter(function(e) return e end)
-  .map(function(e)
+  :filter(function(e) return e.value.type == "down" end)
+  :buffer(updateStream)
+  :map(function(v) return table.min(v, function(e) return e.member.depth or 0 end) end)
+  :filter(function(e) return e end)
+  :map(function(e)
     local e = e.value
-    e.target.drag_begin.send("drag_begin")
+    e.target.drag_begin:send("drag_begin")
 
-    local mouse_up_stream = click_stream.filter(function(e) return e.type == "up" end)
-    mouse_up_stream.map(function(_)
-      e.target.drag_end.send("drag_end")
+    local mouse_up_stream = click_stream:filter(function(e) return e.type == "up" end)
+    mouse_up_stream:map(function(_)
+      e.target.drag_end:send("drag_end")
       return no_more
     end)
 
-    update_stream
-      .take_until(mouse_up_stream)
-      .map(function()
-        e.target.drag_stream.send("drag_continue")
+    updateStream
+      :take_until(mouse_up_stream)
+      :map(function()
+        e.target.drag_stream:send("drag_continue")
       end)
   end)

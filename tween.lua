@@ -66,12 +66,12 @@ Tweener = class({
   end
 })
 
-update_stream.map(function()
+updateStream:map(function()
   for _, t in pairs(Tweener.instances.values()) do
     t.target[t.field] = t:value_at(love.timer.getTime())
     if t:is_done(love.timer.getTime()) then
       t.callback()
-      t.destroy()
+      t:destroy()
     end
   end
 end)

@@ -127,6 +127,22 @@ function table.empty(t)
   return #t > 0
 end
 
+function table.replace(table, from, to, limit)
+  local output = shallow_clone(table)
+  local limit = limit or 1
+  local replaced = 0
+  for k, v in pairs(output) do
+    if v == from then
+      output[k] = to
+      replaced = replaced + 1
+    end
+    if replaced >= limit then
+      break
+    end
+  end
+  return output
+end
+
 function table.member_set(t)
   local output = {}
   for _, v in pairs(t) do

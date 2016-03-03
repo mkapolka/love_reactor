@@ -72,7 +72,7 @@ end
 
 function partial(f, ...)
   local arg = {...}
-  partial_arg = arg
+  local partial_arg = arg
   return function(...)
     local arg = {...}
     f(unpack(partial_arg), unpack(arg))

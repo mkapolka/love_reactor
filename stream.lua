@@ -1,207 +1,205 @@
--- Event streams return this when they are done.
--- Table value so it can act as a symbol
-no_more = {}
+require("love_reactor/utils")
 
-function make_stream()
-  local self = {}
-  self.listeners = {}
-  self.inputs = {}
-  function self.send(value)
+-- Event streams return NO_MORE when they are done.
+-- Table value so it can act as a symbol
+NO_MORE = {}
+
+__stream_index = {
+  send = function(self, value)
     local clone = shallow_clone(self.listeners)
     for _, listener in pairs(clone) do
-      listener.receive(value)
+      listener:receive(value)
     end
-  end
+  end,
 
-  function self.receive(value)
-    self.send(value)
-  end
+  receive = function(self, value)
+    self:send(value)
+  end,
 
-  function self.map(f)
+  map = function(self, f)
     if f == nil then
       error("map received nil")
     end
 
-    local output = make_stream()
-    function output.receive(value)
+    local output = newStream()
+    function output:receive(value)
       local send = f(value)
-      if send == no_more then
-        output.finish()
+      if send == NO_MORE then
+        output:finish()
       else
-        output.send(send)
+        output:send(send)
       end
     end
     table.insert(self.listeners, output)
     table.insert(output.inputs, self)
     return output
-  end
+  end,
 
-  function self.mapValue(value)
-    return self.map(function(_)
+  mapValue = function(self, value)
+    return self:map(function(_)
       return value
     end)
-  end
+  end,
 
-  function self.filter(f)
-    local output = make_stream()
-    function output.receive(value)
+  filter = function(self, f)
+    local output = newStream()
+    function output:receive(value)
       if (f(value)) then
-        output.send(value)
+        output:send(value)
       end
     end
     table.insert(self.listeners, output)
     table.insert(output.inputs, self)
     return output
-  end
+  end,
 
-  function self.attach(stream)
+  attach = function(self, stream)
     table.insert(stream.inputs, self)
     table.insert(self.listeners, stream)
     return stream
-  end
+  end,
 
-  function self.detach_from(stream)
+  detachFrom = function(self, stream)
     table.removeValue(stream.inputs, self)
     table.removeValue(self.listeners, stream)
-  end
+  end,
 
-  function self.replace(stream)
+  replace = function(self, stream)
     for _, input in pairs(self.inputs) do
-      input.attach(stream)
+      input:attach(stream)
     end
     stream.listeners = self.listeners
-    self._clear_inputs()
-  end
+    self:_clear_inputs()
+  end,
 
-  function self.finish()
-    self._clear_inputs()
-    self._clear_outputs()
-  end
+  finish = function(self)
+    self:_clear_inputs()
+    self:_clear_outputs()
+  end,
 
-  function self.preSplice(stream)
+  preSplice = function(self, stream)
     for _, input in pairs(self.inputs) do
-      input.attach(stream)
+      input:attach(stream)
     end
-    stream.attach(self)
-    self._clear_inputs()
-  end
+    stream:attach(self)
+    self:_clear_inputs()
+  end,
 
-  function self._clear_inputs()
+  _clear_inputs = function(self)
     for _, input in pairs(self.inputs) do
-      input._remove_listener(self)
+      input:_remove_listener(self)
     end
-  end
+  end,
 
-  function self._clear_outputs()
+  _clear_outputs = function(self)
     for _, listener in pairs(self.listeners) do
-      listener._remove_input(self)
+      listener:_remove_input(self)
     end
-  end
+  end,
 
-  function self._remove_listener(stream)
+  _remove_listener = function(self, stream)
     table.removeValue(self.listeners, stream)
-  end
+  end,
 
-  function self._remove_input(which)
+  _remove_input = function(self, which)
     table.removeValue(self.inputs, which)
-  end
+  end,
 
-  function self.explode()
-    local output = make_stream()
-    function output.receive(values)
+  explode = function(self)
+    local output = newStream()
+    function output:receive(values)
       for _, value in pairs(values) do
-        output.send(value)
+        output:send(value)
       end
     end
-    self.attach(output)
+    self:attach(output)
     return output
-  end
+  end,
 
-  function self.take_until(other)
-    local output = self.map(function(v) return v end)
-    other.map(function()
-      output.finish()
-      return no_more
+  takeUntil = function(self, other)
+    local output = self:map(function(v) return v end)
+    other:map(function()
+      output:finish()
+      return NO_MORE
     end)
     return output
-  end
+  end,
 
-  function self.combine(other)
-    local output = make_stream()
-    self.attach(output)
-    other.attach(output)
+  combine = function(self, other)
+    local output = newStream()
+    self:attach(output)
+    other:attach(output)
     return output
-  end
+  end,
 
-  function self.buffer_latest(flush)
+  buffer_latest = function(self, flush)
     -- Makes a stream that stores values from input and sends them down when we get a signal from flush
     local cached = nil
-    local buffer_stream = make_stream()
-    self.attach(buffer_stream)
+    local buffer_stream = newStream()
+    self:attach(buffer_stream)
 
-    flush.map(function() buffer_stream.flush() end)
+    flush:map(function() buffer_stream:flush() end)
 
-    function buffer_stream.receive(value)
+    function buffer_stream.receive(self, value)
       buffer_stream.cached = value
     end
 
-    function buffer_stream.flush()
+    function buffer_stream.flush(self)
       if buffer_stream.cached then
-        buffer_stream.send(buffer_stream.cached)
+        buffer_stream:send(buffer_stream.cached)
       end
       buffer_stream.cached = nil
     end
 
     return buffer_stream
-  end
+  end,
 
-  function self.buffer(flush_stream)
+  buffer = function(self, flush_stream)
     -- Makes a stream that stores values from input and sends them down when we get a signal from flush
-    local buffer_stream = make_stream()
-    self.attach(buffer_stream)
+    local buffer_stream = newStream()
+    self:attach(buffer_stream)
 
     buffer_stream.cache = {}
-    function buffer_stream.receive(value)
+    function buffer_stream.receive(self, value)
       table.insert(buffer_stream.cache, value)
     end
 
-    function buffer_stream.flush()
-      buffer_stream.send(buffer_stream.cache)
+    function buffer_stream.flush(self)
+      buffer_stream:send(buffer_stream.cache)
       buffer_stream.cache = {}
     end
 
-    flush_stream.map(function()
-      buffer_stream.flush()
+    flush_stream:map(function()
+      buffer_stream:flush()
     end)
 
     return buffer_stream
-  end
+  end,
   
-  function self.print(prepend)
+  print = function(self, prepend)
     prepend = prepend or ""
-    return self.map(function(x)
+    return self:map(function(x)
       print(prepend .. tostring(x))
       return x
     end)
-  end
+  end,
 
-  return self
-end
-
-function make_map_stream(f)
-  local output = make_stream()
-  function output.receive(value)
-    output.send(f(value))
+  repl = function(self, prepend)
+    return self:map(repl):print(prepend)
   end
-  return output
+}
+
+function newStream()
+  local output = {listeners = {}, inputs = {}}
+  return setmetatable(output, {__index = __stream_index})
 end
 
 function combineLatest(stream_table, initial_values)
-  local output = make_stream()
+  local output = newStream()
   output.latest_values = initial_values
   output.cxns = {}
   function output.broadcast()
-    output.send(output.latest_values)
+    output:send(output.latest_values)
   end
 
   function output.finish()
@@ -226,48 +224,48 @@ end
 
 -- Love hooks
 
-update_stream = make_stream()
-draw_stream = make_stream()
-click_stream = make_stream()
-keypressed_stream = make_stream()
-keyreleased_stream = make_stream()
+updateStream = newStream()
+drawStream = newStream()
+clickStream = newStream()
+keyPressedStream = newStream()
+keyReleasedStream = newStream()
 
-keyheld_stream = make_stream()
-keypressed_stream.map(function(k)
-  update_stream.take_until(keyreleased_stream
-                            .filter(function(v) return v == k end))
-    .map(function(_) keyheld_stream.send(k) end)
+keyHeldStream = newStream()
+keyHeldStream:map(function(k)
+  updateStream:takeUntil(keyreleasedStream
+                            :filter(function(v) return v == k end))
+    :map(function(_) keyheldStream:send(k) end)
 end)
 
-mouse_stream = update_stream.map(function(_)
+mouseStream = updateStream:map(function(_)
   return {x = love.mouse.getX(), y = love.mouse.getY()}
 end)
 
 
 function love.update()
-  update_stream.send("tick")
+  updateStream:send("tick")
 end
 
 function love.draw()
-  draw_stream.send("draw")
+  drawStream:send("draw")
 end
 
 function love.mousepressed(x, y, button)
-  click_stream.send({x = x, y = y, button = button, type = "down"})
+  clickStream:send({x = x, y = y, button = button, type = "down"})
 end
 
 function love.mousereleased(x, y, button)
-  click_stream.send({x = x, y = y, button = button, type = "up"})
+  clickStream:send({x = x, y = y, button = button, type = "up"})
 end
 
 function love.keypressed(button, isrepeat)
   if not isrepeat then
-    keypressed_stream.send(button)
+    keyPressedStream:send(button)
   end
 end
 
 function love.keyreleased(button, isrepeat)
   if not isrepeat then
-    keyreleased_stream.send(button)
+    keyReleasedStream:send(button)
   end
 end

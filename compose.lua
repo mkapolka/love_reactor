@@ -4,11 +4,9 @@ require("love_reactor/strict")
 components = {}
 component_containers = {}
 
-function apply_schema(schema)
-  return function(thing)
-    for key, value in pairs(schema) do
-      thing[key] = thing[key] or value
-    end
+function apply_schema(schema, thing)
+  for key, value in pairs(schema) do
+    thing[key] = thing[key] or value
   end
 end
 
@@ -50,7 +48,17 @@ __rxo_mt.__index = function(self, key)
   if key == "position" then
     return {x = self.x, y = self.y}
   else
-    return nil
+    return ({
+      destroy = function(self)
+        self.on_destroy:send("destroyed")
+        for _, component in pairs(self.class.components) do
+          remove_component(self, component)
+        end
+        for _, container in pairs(self.class.membership) do
+          container.remove(self)
+        end
+      end
+    })[key]
   end
 end
 
@@ -68,35 +76,27 @@ function class(schema, components, membership)
   local components = components or {}
   local membership = membership or {}
   self.instances = rxcontainer()
+  self.membership = membership
+  self.components = components
   table.insert(membership, self.instances)
-  function self.new(partial, ...)
+  function self.new(values, ...)
     local output = {
       components = {},
       class = self
     }
     setmetatable(output, __rxo_mt)
-    if partial then
-      apply_schema(partial)(output)
-      if partial.position then
-        output.position = partial.position
+    if values then
+      apply_schema(values, output)
+      if values.position then
+        output.position = values.position
       end
     end
-    apply_schema(schema)(output)
+    apply_schema(schema, output)
 
-    output.on_destroy = make_stream()
+    output.on_destroy = newStream()
 
     for _, component in pairs(components) do
       apply_component(output, component, false)
-    end
-
-    function output.destroy()
-      output.on_destroy.send("destroyed")
-      for _, component in pairs(components) do
-        remove_component(output, component)
-      end
-      for _, container in pairs(membership) do
-        container.remove(output)
-      end
     end
 
     output.init = output.init or function() end
