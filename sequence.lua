@@ -2,11 +2,11 @@ function sequence(values)
   local output = {}
   output._values = values
   output._pointer = 1
-  output.done = make_stream()
+  output.done = makeStream()
   output.next = function(self)
     self._pointer = (self._pointer % #self._values) + 1
     if self._pointer == #self._values then
-      self.done.send("done")
+      self.done:send("done")
     end
     return self._values[self._pointer]
   end

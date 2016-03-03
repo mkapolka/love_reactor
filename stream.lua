@@ -136,8 +136,8 @@ __stream_index = {
     return output
   end,
 
-  take_one = function(self)
-    local output = make_stream()
+  takeOne = function(self)
+    local output = newStream()
     self:map(function(value)
       output:send(value)
       return NO_MORE
@@ -145,48 +145,48 @@ __stream_index = {
     return output
   end,
 
-  buffer_latest = function(self, flush)
+  bufferLatest = function(self, flush)
     -- Makes a stream that stores values from input and sends them down when we get a signal from flush
     local cached = nil
-    local buffer_stream = newStream()
-    self:attach(buffer_stream)
+    local bufferStream = newStream()
+    self:attach(bufferStream)
 
-    flush:map(function() buffer_stream:flush() end)
+    flush:map(function() bufferStream:flush() end)
 
-    function buffer_stream.receive(self, value)
-      buffer_stream.cached = value
+    function bufferStream.receive(self, value)
+      bufferStream.cached = value
     end
 
-    function buffer_stream.flush(self)
-      if buffer_stream.cached then
-        buffer_stream:send(buffer_stream.cached)
+    function bufferStream.flush(self)
+      if bufferStream.cached then
+        bufferStream:send(bufferStream.cached)
       end
-      buffer_stream.cached = nil
+      bufferStream.cached = nil
     end
 
-    return buffer_stream
+    return bufferStream
   end,
 
   buffer = function(self, flush_stream)
     -- Makes a stream that stores values from input and sends them down when we get a signal from flush
-    local buffer_stream = newStream()
-    self:attach(buffer_stream)
+    local bufferStream = newStream()
+    self:attach(bufferStream)
 
-    buffer_stream.cache = {}
-    function buffer_stream.receive(self, value)
-      table.insert(buffer_stream.cache, value)
+    bufferStream.cache = {}
+    function bufferStream.receive(self, value)
+      table.insert(bufferStream.cache, value)
     end
 
-    function buffer_stream.flush(self)
-      buffer_stream:send(buffer_stream.cache)
-      buffer_stream.cache = {}
+    function bufferStream.flush(self)
+      bufferStream:send(bufferStream.cache)
+      bufferStream.cache = {}
     end
 
     flush_stream:map(function()
-      buffer_stream:flush()
+      bufferStream:flush()
     end)
 
-    return buffer_stream
+    return bufferStream
   end,
 
   delay = function(self, time)
