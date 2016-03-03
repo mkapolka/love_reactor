@@ -78,3 +78,7 @@ function partial(f, ...)
     f(unpack(partial_arg), unpack(arg))
   end
 end
+
+function identity(...)
+  return ...
+end

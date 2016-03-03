@@ -35,6 +35,10 @@ __stream_index = {
     return output
   end,
 
+  mapFilter = function(self, f)
+    return self.map(f).filter(identity)
+  end,
+
   mapValue = function(self, value)
     return self:map(function(_)
       return value
@@ -132,6 +136,15 @@ __stream_index = {
     return output
   end,
 
+  take_one = function(self)
+    local output = make_stream()
+    self:map(function(value)
+      output:send(value)
+      return NO_MORE
+    end)
+    return output
+  end,
+
   buffer_latest = function(self, flush)
     -- Makes a stream that stores values from input and sends them down when we get a signal from flush
     local cached = nil
@@ -174,6 +187,36 @@ __stream_index = {
     end)
 
     return buffer_stream
+  end,
+
+  delay = function(self, time)
+    local output = newStream()
+    output.receive = function(self, value)
+      local time_left = time
+      update_stream
+        :map(function()
+          time_left = time_left - love.timer.getDelta()
+          if time_left < 0 then
+            output:send(value)
+            return NO_MORE
+          end
+        end)
+    end
+    self:attach(output)
+    return output
+  end,
+
+  throttle = function(self, time_between, delay_initial)
+    local output = newStream()
+    output.last_message = (delay_initial and love.timer.getTime()) or 0
+    output.receive = function(self, value)
+      if (love.timer.getTime() - output.last_message) > time_between then
+        output:send(value)
+        output.last_message = love.timer.getTime()
+      end
+    end
+    self:attach(output)
+    return output
   end,
   
   print = function(self, prepend)

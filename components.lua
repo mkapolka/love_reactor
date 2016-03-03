@@ -106,6 +106,10 @@ drawable = component(function(self)
     if not self.height then
       self.height = self.sprite:getHeight()
     end
+  else
+    if not self.offset then
+      self.offset = {x = 0, y = 0}
+    end
   end
 end)
 
@@ -129,6 +133,8 @@ movable = component(partial(apply_schema, {
   x = 0, y = 0,
   velocity = {x = 0, y = 0},
   acceleration = {x = 0, y = 0},
+  angular_velocity = 0,
+  angular_acceleration = 0,
   drag = {x = 0, y = 0}
 }))
 
@@ -152,6 +158,9 @@ function update_movable(movable)
   else
     movable.velocity.y = movable.velocity.y + dvy * (movable.velocity.y > 0 and -1 or 1)
   end
+
+  movable.rotation = movable.rotation + movable.angular_velocity * love.timer.getDelta()
+  movable.angular_velocity = movable.angular_velocity + movable.angular_acceleration * love.timer.getDelta()
 end
 
 updateStream:map(function(x)
@@ -450,6 +459,15 @@ animatable = component(function(thing)
 
   if thing.start_animation then
     thing:play(thing.start_animation)
+  else
+    local first_anim = nil
+    for key, _ in pairs(thing.animations) do
+      first_anim = key
+      break
+    end
+    if first_anim then
+      thing:play(first_anim)
+    end
   end
 end, {drawable})
 

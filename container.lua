@@ -186,22 +186,22 @@ end
 
 function difference(rxc1, rxc2)
   local output = rxcontainer()
-  container = {rxc1, rxc2}
-  rxc1.added
-    :map(function(v)
-      if not rxc2.contents[v] then
-        output.add(v)
-      end
-    end)
+  output.contains = function(value)
+    return rxc1.contains(value) and not rxc2.contains(value)
+  end
+  output.values = function(value)
+    return table.filter(rxc1.values(), function(value) return not rxc2.contains(value) end)
+  end
+  return output
+end
 
-  rxc1.removed
-    :map(function(v)
-      output.remove(v)
-    end)
-
-  rxc2.added
-    :map(function(v)
-      output.remove(v)
-    end)
+function intersection(rxc1, rxc2)
+  local output = rxcontainer()
+  output.contains = function(value)
+    return rxc1.contains(value) and rxc2.contains(value) 
+  end
+  output.values = function()
+    return table.filter(rxc1.values(), function(value) return rxc2.contains(value) end)
+  end
   return output
 end
